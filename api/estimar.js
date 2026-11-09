@@ -32,17 +32,29 @@ module.exports = async (req, res) => {
       },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 400,
+        max_tokens: 2000,
+        system: "Respondés únicamente con un objeto JSON válido. Sin markdown, sin explicaciones, sin texto antes ni después.",
         messages: [{ role: "user", content: prompt(actividad, ciudad) }]
       })
     });
     const data = await r.json();
     if (!r.ok) return res.status(502).json({ error: (data.error && data.error.message) || "Error de la IA" });
 
-    const text = (data.content || []).map(c => c.text || "").join("");
-    const match = text.match(/\{[\s\S]*\}/);
-    if (!match) return res.status(502).json({ error: "Respuesta rara de la IA" });
-    const out = JSON.parse(match[0]);
+    const text = (data.content || [])
+      .filter(c => c.type === "text")
+      .map(c => c.text || "")
+      .join("")
+      .replace(/```(json)?/gi, "");
+    const start = text.indexOf("{"), end = text.lastIndexOf("}");
+    let out;
+    try {
+      if (start === -1 || end <= start) throw new Error();
+      out = JSON.parse(text.slice(start, end + 1));
+    } catch {
+      return res.status(502).json({
+        error: `Respuesta rara de la IA [${data.stop_reason || "?"}]: ${text.slice(0, 120) || "(vacía)"}`
+      });
+    }
     res.status(200).json({
       costo_usd: Math.round(Number(out.costo_usd) || 0),
       desglose: Array.isArray(out.desglose) ? out.desglose.slice(0, 4) : [],
