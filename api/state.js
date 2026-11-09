@@ -48,6 +48,7 @@ module.exports = async (req, res) => {
         actividad: clip(e.actividad, 200),
         usd,
         comentario: clip(e.comentario, 240),
+        autor: clip(e.autor, 30),
         ts: Date.now()
       });
       if (state.entries.length > 500) state.entries = state.entries.slice(-500);
