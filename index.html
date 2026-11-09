@@ -53,6 +53,9 @@
   .hist li:last-child{border-bottom:0}
   .hist .what{font-weight:600}
   .hist .meta{font-size:13px;color:var(--muted)}
+  .hist .by{color:var(--ink);font-weight:600}
+  .autor{display:flex;align-items:center;gap:10px;margin-top:12px;font-size:15px;color:var(--muted)}
+  .autor input{flex:0 1 220px;border:1px solid var(--line);border-radius:10px;padding:9px 12px;font:inherit;font-size:16px;background:#fff;color:var(--ink)}
   .hist .usd{font-family:"JetBrains Mono",monospace;font-weight:700;color:var(--red);white-space:nowrap}
   .x{background:none;border:0;color:var(--muted);cursor:pointer;font-size:18px;line-height:1;padding:2px 4px}
   .x:hover{color:var(--red)}
@@ -90,6 +93,7 @@
     <h2>¿Qué lo viste haciendo en Instagram?</h2>
     <textarea id="actividad" placeholder="Ej: un Aperol Spritz en una pileta"></textarea>
     <div class="chips" id="chips"></div>
+    <label class="autor">¿Quién lo carga? <input id="autor" placeholder="Tu nombre" maxlength="30"></label>
     <div class="row">
       <button class="btn red" id="calcular">Contar la costilla</button>
       <span class="sub" id="status"></span>
@@ -210,7 +214,7 @@ function render(){
   $("hist").innerHTML = sorted.length ? sorted.map(e=>`
     <li>
       <div><div class="what">${esc(e.actividad)}</div>
-        <div class="meta">${new Date(e.ts||Date.now()).toLocaleDateString("es-AR",{day:"numeric",month:"short"})}${e.comentario?" · "+esc(e.comentario):""}</div></div>
+        <div class="meta">${new Date(e.ts||Date.now()).toLocaleDateString("es-AR",{day:"numeric",month:"short"})}${e.autor?' · cargado por <span class="by">'+esc(e.autor)+'</span>':""}${e.comentario?" · "+esc(e.comentario):""}</div></div>
       <div class="usd">-${fmt(e.usd)}</div>
       <button class="x" title="Borrar" data-id="${esc(e.id)}">×</button>
     </li>`).join("") : '<li class="empty">Todavía nadie le contó ninguna costilla. Empezá arriba.</li>';
@@ -245,7 +249,10 @@ async function confirmar(){
   if(!pending) return;
   const usd = Math.round(+$("estUsd").value);
   if(!(usd > 0)){ $("estUsd").focus(); toast("Poné un monto mayor a cero"); return; }
-  const entry = { actividad: pending.actividad, usd, comentario: pending.comentario };
+  const autor = $("autor").value.trim();
+  if(!autor){ $("autor").focus(); toast("Poné quién la carga"); return; }
+  try{ localStorage.setItem("costillas_autor", autor); }catch(e){}
+  const entry = { actividad: pending.actividad, usd, comentario: pending.comentario, autor };
   pending = null; $("est").style.display = "none"; $("actividad").value = "";
   await act({type:"add", entry});
   toast(`Costilla contada: -${fmt(usd)}`);
@@ -266,7 +273,7 @@ $("descartar").addEventListener("click", ()=>{ pending=null; $("est").style.disp
 $("copiar").addEventListener("click", async ()=>{
   const gastado = entries.reduce((a,e)=>a+(+e.usd||0),0);
   const restante = Math.max(0, config.deuda - gastado);
-  const lineas = [...entries].sort((a,b)=>(a.ts||0)-(b.ts||0)).map(e=>`• ${e.actividad}: ${fmt(e.usd)}`).join("\n");
+  const lineas = [...entries].sort((a,b)=>(a.ts||0)-(b.ts||0)).map(e=>`• ${e.actividad}: ${fmt(e.usd)}${e.autor?" (lo vio "+e.autor+")":""}`).join("\n");
   const txt = `${config.deudor}, te conté las costillas 🦴\n\n${lineas || "(todavía ninguna)"}\n\nTotal gastado "sin plata": ${fmt(gastado)}\nDeuda original: ${fmt(config.deuda)}\n${restante>0 ? "Te quedan "+fmt(restante)+" de excusa." : "Ya te gastaste toda la deuda. Pagale a "+config.acreedor+"."}\n\n${location.href}`;
   try{ await navigator.clipboard.writeText(txt); toast("Copiado. Mandáselo por WhatsApp."); }
   catch(e){ toast("No pude copiar"); }
@@ -289,6 +296,7 @@ $("cfgGuardar").addEventListener("click", ()=>{
   $("modal").classList.remove("open");
 });
 
+try{ $("autor").value = localStorage.getItem("costillas_autor") || ""; }catch(e){}
 render();
 refresh();
 setInterval(()=>{ if(!document.hidden) refresh(); }, 15000);
