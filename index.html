@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>El Contador de Costillas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f4eee3; --ink:#1d1a16; --muted:#7a7166; --line:#e0d6c6; --card:#fffaf2;
+    --red:#c2361f; --red-soft:#f3d6cc; --green:#2f7a4a; --bone:#e9dfcd;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Bricolage Grotesque",system-ui,sans-serif;line-height:1.4}
+  .wrap{max-width:720px;margin:0 auto;padding:32px 20px 64px}
+  header h1{font-size:clamp(34px,7vw,56px);font-weight:800;letter-spacing:-.03em;line-height:.95;margin:0}
+  header h1 span{color:var(--red)}
+  header p{color:var(--muted);margin:10px 0 0;font-size:17px}
+  .mono{font-family:"JetBrains Mono",monospace}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px;margin-top:22px}
+  .hero{display:grid;grid-template-columns:1fr 150px;gap:16px;align-items:center}
+  .hero .label{font-size:15px;color:var(--muted)}
+  .hero .label b{color:var(--ink)}
+  .big{font-family:"JetBrains Mono",monospace;font-weight:700;font-size:clamp(40px,9vw,64px);letter-spacing:-.04em;line-height:1;margin:6px 0}
+  .big.paid{color:var(--green)}
+  .sub{font-size:14px;color:var(--muted)}
+  .bar{height:10px;background:var(--bone);border-radius:99px;overflow:hidden;margin-top:14px}
+  .bar i{display:block;height:100%;background:var(--red);width:0;transition:width .6s ease}
+  svg.ribs path{fill:none;stroke:var(--bone);stroke-width:7;stroke-linecap:round;transition:stroke .4s}
+  svg.ribs path.on{stroke:var(--red)}
+  svg.ribs line{stroke:var(--ink);stroke-width:6;stroke-linecap:round}
+  textarea{width:100%;min-height:76px;resize:vertical;border:1px solid var(--line);border-radius:12px;padding:12px 14px;font:inherit;font-size:17px;background:#fff;color:var(--ink)}
+  textarea:focus,input:focus{outline:2px solid var(--ink);outline-offset:1px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 4px}
+  .chip{border:1px dashed var(--line);background:transparent;border-radius:99px;padding:6px 12px;font:inherit;font-size:14px;color:var(--muted);cursor:pointer}
+  .chip:hover{border-color:var(--ink);color:var(--ink)}
+  .btn{border:0;border-radius:12px;padding:13px 20px;font:inherit;font-weight:600;font-size:16px;cursor:pointer;background:var(--ink);color:var(--bg)}
+  .btn.red{background:var(--red);color:#fff}
+  .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+  .btn:disabled{opacity:.5;cursor:wait}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px}
+  h2{font-size:20px;margin:0 0 12px;letter-spacing:-.01em}
+  .est{display:none;border-top:1px dashed var(--line);margin-top:18px;padding-top:18px}
+  .est .amt{display:flex;align-items:center;gap:8px;font-family:"JetBrains Mono",monospace;font-weight:700;font-size:34px}
+  .est .amt input{width:150px;font:inherit;border:1px solid var(--line);border-radius:10px;padding:4px 10px;background:#fff;color:var(--ink)}
+  .est ul{margin:12px 0 0;padding:0;list-style:none;font-size:15px}
+  .est li{display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding:6px 0}
+  .quip{font-style:italic;margin-top:12px;color:var(--red);font-size:16px}
+  .err{color:var(--red);font-size:14px;margin-top:10px;display:none}
+  .hist{list-style:none;margin:0;padding:0}
+  .hist li{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:start;padding:12px 0;border-bottom:1px solid var(--line)}
+  .hist li:last-child{border-bottom:0}
+  .hist .what{font-weight:600}
+  .hist .meta{font-size:13px;color:var(--muted)}
+  .hist .usd{font-family:"JetBrains Mono",monospace;font-weight:700;color:var(--red);white-space:nowrap}
+  .x{background:none;border:0;color:var(--muted);cursor:pointer;font-size:18px;line-height:1;padding:2px 4px}
+  .x:hover{color:var(--red)}
+  .empty{color:var(--muted);font-size:15px}
+  footer{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .3s;pointer-events:none}
+  .toast.show{opacity:1}
+  .modal{position:fixed;inset:0;background:rgba(29,26,22,.45);display:none;align-items:center;justify-content:center;padding:20px}
+  .modal.open{display:flex}
+  .modal .card{width:100%;max-width:420px;margin:0}
+  .modal label{display:block;font-size:14px;color:var(--muted);margin-top:12px}
+  .modal input{width:100%;margin-top:4px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;font-size:16px;background:#fff;color:var(--ink)}
+  .note{font-size:13px;color:var(--muted);margin-top:8px}
+  @media (max-width:520px){.hero{grid-template-columns:1fr}.hero svg{max-width:140px;margin:0 auto}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>El Contador de <span>Costillas</span></h1>
+    <p>Porque "no me cuentes las costillas" no es un plan de pagos.</p>
+  </header>
+
+  <section class="card hero">
+    <div>
+      <div class="label"><b id="hDeudor">Sebas</b> le debe a <b id="hAcreedor">Iván</b></div>
+      <div class="big" id="restante">USD 0</div>
+      <div class="sub" id="subline"></div>
+      <div class="bar"><i id="barFill"></i></div>
+    </div>
+    <svg class="ribs" viewBox="0 0 200 210" aria-hidden="true" id="ribs"></svg>
+  </section>
+
+  <section class="card">
+    <h2>¿Qué lo viste haciendo en Instagram?</h2>
+    <textarea id="actividad" placeholder="Ej: un Aperol Spritz en una pileta"></textarea>
+    <div class="chips" id="chips"></div>
+    <div class="row">
+      <button class="btn red" id="calcular">Contar la costilla</button>
+      <span class="sub" id="status"></span>
+    </div>
+    <div class="err" id="err"></div>
+
+    <div class="est" id="est">
+      <div class="sub">Costo estimado</div>
+      <div class="amt">USD <input type="number" id="estUsd" min="0" step="1"></div>
+      <ul id="estDesglose"></ul>
+      <div class="quip" id="estQuip"></div>
+      <div class="row">
+        <button class="btn" id="confirmar">Descontar de la deuda</button>
+        <button class="btn ghost" id="descartar">Descartar</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Costillas contadas</h2>
+    <ul class="hist" id="hist"></ul>
+  </section>
+
+  <footer>
+    <button class="btn ghost" id="copiar">Copiar resumen para mandarle</button>
+    <button class="btn ghost" id="ajustes">Ajustes</button>
+  </footer>
+  <p class="note" id="syncNote"></p>
+</div>
+
+<div class="modal" id="modal">
+  <div class="card">
+    <h2>Ajustes</h2>
+    <label>El que debe<input id="cfgDeudor"></label>
+    <label>El que espera la guita<input id="cfgAcreedor"></label>
+    <label>Deuda original (USD)<input id="cfgDeuda" type="number" min="0" step="1"></label>
+    <label>Ciudad donde vive el deudor (para estimar precios)<input id="cfgCiudad"></label>
+    <div class="row">
+      <button class="btn" id="cfgGuardar">Guardar</button>
+      <button class="btn ghost" id="cfgCerrar">Cancelar</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const EJEMPLOS = [
+  "Un Aperol Spritz en una pileta",
+  "Cena con 3 pibas en Don Julio",
+  "Botella de Fernet y previa en un rooftop",
+  "Finde en José Ignacio",
+  "Mesa VIP en un boliche de Palermo"
+];
+const DEFAULTS = { deudor:"Sebas", acreedor:"Iván", deuda:1000, ciudad:"Buenos Aires" };
+
+let config = {...DEFAULTS};
+let entries = [];
+let pending = null;
+
+const $ = id => document.getElementById(id);
+const fmt = n => "USD " + Math.round(n).toLocaleString("es-AR");
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),2200); }
+
+/* ---------- API ---------- */
+async function api(path, body){
+  const r = await fetch(path, body ? {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)} : {});
+  const data = await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(data.error || "Error " + r.status);
+  return data;
+}
+function applyState(s){
+  config = {...DEFAULTS, ...(s.config||{})};
+  entries = s.entries || [];
+  render();
+}
+async function refresh(){
+  try{ applyState(await api("/api/state")); $("syncNote").textContent = "Todos los que abren el link ven la misma deuda."; }
+  catch(e){ $("syncNote").textContent = "No pude cargar la deuda: " + e.message; }
+}
+async function act(action){
+  try{ applyState(await api("/api/state", action)); }
+  catch(e){ toast("No se pudo guardar: " + e.message); }
+}
+
+/* ---------- Ribcage ---------- */
+const RIB_PAIRS = 8;
+function drawRibs(ratio){
+  const on = Math.round(Math.min(1,ratio) * RIB_PAIRS);
+  let s = '<line x1="100" y1="12" x2="100" y2="198"/>';
+  for(let i=0;i<RIB_PAIRS;i++){
+    const y = 26 + i*22, w = 70 - Math.abs(i-3)*5, cls = i < on ? "on" : "";
+    s += `<path class="${cls}" d="M96 ${y} Q ${100-w} ${y-6} ${100-w+4} ${y+16}"/>`;
+    s += `<path class="${cls}" d="M104 ${y} Q ${100+w} ${y-6} ${100+w-4} ${y+16}"/>`;
+  }
+  $("ribs").innerHTML = s;
+}
+
+/* ---------- Render ---------- */
+function render(){
+  const gastado = entries.reduce((a,e)=>a+(+e.usd||0),0);
+  const restante = config.deuda - gastado;
+  $("hDeudor").textContent = config.deudor;
+  $("hAcreedor").textContent = config.acreedor;
+  const big = $("restante");
+  if(restante > 0){
+    big.textContent = fmt(restante); big.classList.remove("paid");
+    $("subline").textContent = `de ${fmt(config.deuda)} originales. Ya se gastó ${fmt(gastado)} en costillas contadas.`;
+  } else {
+    big.textContent = "USD 0"; big.classList.add("paid");
+    $("subline").textContent = `Se gastó ${fmt(gastado)} en cosas que "no podía pagar". Le sobraron ${fmt(-restante)} para devolverte.`;
+  }
+  const ratio = config.deuda > 0 ? gastado/config.deuda : 0;
+  $("barFill").style.width = Math.min(100, ratio*100) + "%";
+  drawRibs(ratio);
+
+  const sorted = [...entries].sort((a,b)=>(b.ts||0)-(a.ts||0));
+  $("hist").innerHTML = sorted.length ? sorted.map(e=>`
+    <li>
+      <div><div class="what">${esc(e.actividad)}</div>
+        <div class="meta">${new Date(e.ts||Date.now()).toLocaleDateString("es-AR",{day:"numeric",month:"short"})}${e.comentario?" · "+esc(e.comentario):""}</div></div>
+      <div class="usd">-${fmt(e.usd)}</div>
+      <button class="x" title="Borrar" data-id="${esc(e.id)}">×</button>
+    </li>`).join("") : '<li class="empty">Todavía nadie le contó ninguna costilla. Empezá arriba.</li>';
+}
+
+$("chips").innerHTML = EJEMPLOS.map(t=>`<button class="chip">${esc(t)}</button>`).join("");
+$("chips").addEventListener("click", e=>{ if(e.target.classList.contains("chip")){ $("actividad").value = e.target.textContent; $("actividad").focus(); }});
+
+/* ---------- Estimate ---------- */
+async function estimar(){
+  const actividad = $("actividad").value.trim();
+  if(!actividad){ $("actividad").focus(); return; }
+  $("err").style.display = "none";
+  const btn = $("calcular"); btn.disabled = true; $("status").textContent = "Tasando la costilla...";
+  try{
+    showEstimate(actividad, await api("/api/estimar", {actividad, ciudad: config.ciudad}));
+  } catch(e){
+    $("err").textContent = "No pude tasarlo (" + e.message + "). Poné el monto a mano.";
+    $("err").style.display = "block";
+    showEstimate(actividad, {costo_usd:"", desglose:[], comentario:""});
+  } finally { btn.disabled = false; $("status").textContent = ""; }
+}
+function showEstimate(actividad, d){
+  pending = { actividad, comentario: d.comentario || "" };
+  $("estUsd").value = d.costo_usd === "" ? "" : Math.round(+d.costo_usd || 0);
+  $("estDesglose").innerHTML = (d.desglose||[]).map(x=>`<li><span>${esc(x.item)}</span><span class="mono">${fmt(+x.usd||0)}</span></li>`).join("");
+  $("estQuip").textContent = d.comentario || "";
+  $("est").style.display = "block";
+  $("estUsd").focus();
+}
+async function confirmar(){
+  if(!pending) return;
+  const usd = Math.round(+$("estUsd").value);
+  if(!(usd > 0)){ $("estUsd").focus(); toast("Poné un monto mayor a cero"); return; }
+  const entry = { actividad: pending.actividad, usd, comentario: pending.comentario };
+  pending = null; $("est").style.display = "none"; $("actividad").value = "";
+  await act({type:"add", entry});
+  toast(`Costilla contada: -${fmt(usd)}`);
+}
+
+$("hist").addEventListener("click", ev=>{
+  const b = ev.target, id = b.dataset && b.dataset.id;
+  if(!id) return;
+  if(b.dataset.confirm === "1"){ act({type:"delete", id}); }
+  else { b.dataset.confirm = "1"; b.textContent = "¿borrar?"; b.style.fontSize="13px"; setTimeout(()=>{ if(b.isConnected){ b.dataset.confirm=""; b.textContent="×"; b.style.fontSize=""; } }, 2500); }
+});
+
+$("calcular").addEventListener("click", estimar);
+$("actividad").addEventListener("keydown", e=>{ if(e.key==="Enter" && (e.metaKey||e.ctrlKey)) estimar(); });
+$("confirmar").addEventListener("click", confirmar);
+$("descartar").addEventListener("click", ()=>{ pending=null; $("est").style.display="none"; });
+
+$("copiar").addEventListener("click", async ()=>{
+  const gastado = entries.reduce((a,e)=>a+(+e.usd||0),0);
+  const restante = Math.max(0, config.deuda - gastado);
+  const lineas = [...entries].sort((a,b)=>(a.ts||0)-(b.ts||0)).map(e=>`• ${e.actividad}: ${fmt(e.usd)}`).join("\n");
+  const txt = `${config.deudor}, te conté las costillas 🦴\n\n${lineas || "(todavía ninguna)"}\n\nTotal gastado "sin plata": ${fmt(gastado)}\nDeuda original: ${fmt(config.deuda)}\n${restante>0 ? "Te quedan "+fmt(restante)+" de excusa." : "Ya te gastaste toda la deuda. Pagale a "+config.acreedor+"."}\n\n${location.href}`;
+  try{ await navigator.clipboard.writeText(txt); toast("Copiado. Mandáselo por WhatsApp."); }
+  catch(e){ toast("No pude copiar"); }
+});
+
+$("ajustes").addEventListener("click", ()=>{
+  $("cfgDeudor").value = config.deudor; $("cfgAcreedor").value = config.acreedor;
+  $("cfgDeuda").value = config.deuda; $("cfgCiudad").value = config.ciudad;
+  $("modal").classList.add("open");
+});
+$("cfgCerrar").addEventListener("click", ()=>$("modal").classList.remove("open"));
+$("modal").addEventListener("click", e=>{ if(e.target.id==="modal") $("modal").classList.remove("open"); });
+$("cfgGuardar").addEventListener("click", ()=>{
+  act({type:"config", config:{
+    deudor: $("cfgDeudor").value.trim() || DEFAULTS.deudor,
+    acreedor: $("cfgAcreedor").value.trim() || DEFAULTS.acreedor,
+    deuda: Math.max(0, Math.round(+$("cfgDeuda").value || 0)),
+    ciudad: $("cfgCiudad").value.trim() || DEFAULTS.ciudad
+  }});
+  $("modal").classList.remove("open");
+});
+
+render();
+refresh();
+setInterval(()=>{ if(!document.hidden) refresh(); }, 15000);
+</script>
+</body>
+</html>
